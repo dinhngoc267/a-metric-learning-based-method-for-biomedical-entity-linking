@@ -35,12 +35,12 @@ class SparseRetrieval:
         self.char_tfidf = TfidfVectorizer(analyzer='char',
                                     lowercase=True,
                                     ngram_range=char_ngram_range,
-                                    dtype=np.float32)
+                                    dtype=np.float16)
 
         self.word_tfidf = TfidfVectorizer(analyzer='word', 
                                      lowercase =True, 
                                      ngram_range=(1, 1),
-                                     dtype=np.float32, 
+                                     dtype=np.float16, 
                                      stop_words = stopwords.words('english'), 
                                      token_pattern='[a-zA-Z0-9_]{1,}')
         
@@ -54,7 +54,7 @@ class SparseRetrieval:
         data_files = glob.glob(os.path.join(data_dir, "*.txt"))
 
         for file in tqdm(data_files):
-            with open(file, "r") as f:
+            with open(file, "r", encoding="utf8") as f:
                 lines = f.read().split('\n')
                 
                 for line in lines:
@@ -64,18 +64,18 @@ class SparseRetrieval:
                     mention_cuis.append(cui)
 
         # load entities
-        with open(dictionary_file, "r") as f:
+        with open(dictionary_file, "r", encoding="utf8") as f:
             lines = f.read().split('\n')
             
             for line in tqdm(lines):
-                names = line.split('||')[2].split('|')
+                names = line.split('||')[1].split(' [SEP] ')[1:]
                 names = list(set([x.lower() for x in names]))
                 cui = line.split('||')[0]
                 all_synonyms.extend(names)
                 all_cuis += len(names)*[cui]
                 
                 for name in names:
-                    self.synonym_cui_dict[cui].append(name)
+                    self.synonym_cui_dict[name].append(cui)
 
         corpus = list(set(mentions + all_synonyms))
 
@@ -85,8 +85,8 @@ class SparseRetrieval:
         
     def fit(self, corpus):
         LOGGER.info('Training generator...')
-        self.char_tfidf.fit(corpus)
-        self.word_tfidf.fit(corpus)
+        self.char_tfidf.fit(tqdm(corpus))
+        self.word_tfidf.fit(tqdm(corpus))
         LOGGER.info('Finish training.')
 
     def generate_candidates(self, data_dir, output_file, batch_size = 256, top_k_char = 56, topk = 64):
@@ -99,7 +99,7 @@ class SparseRetrieval:
         mentions = []
 
         for file in tqdm(data_files):
-            with open(file, "r") as f:
+            with open(file, "r", encoding="utf8") as f:
                 lines = f.read().split('\n')
                 
                 for line in lines:
@@ -170,7 +170,7 @@ class SparseRetrieval:
                 count += 1
 
         written_data = []
-        with open(output_file, "w") as f:
+        with open(output_file, "w", encoding="utf8") as f:
             for name, list_candidates in candidates_dict.items():
                 written_data.append(name + '||' + ' '.join(list_candidates))
             f.write("\n".join(written_data))
@@ -230,7 +230,7 @@ class DenseRetrieval:
         files = glob.glob(os.path.join(data_dir, "*.txt"))
 
         for file in tqdm(files):
-            with open(file, "r") as f:
+            with open(file, "r", encoding="utf8") as f:
                 lines = f.read().split("\n")
                 
                 for line in lines:
@@ -288,7 +288,7 @@ class DenseRetrieval:
             candidate_dict[mention] = list_candidates
 
         # write file 
-        with open(output_file, "w") as f:
+        with open(output_file, "w", encoding="utf8") as f:
             f.write("\n".join(written_data))
 
         return candidate_dict
@@ -299,33 +299,36 @@ def main(args):
 
     data_dir = args.data_dir
     dictionary_file = args.dictionary_file
-    output_dir = args.output_dir
+    output_file = args.output_file
     model_type = args.model_type
 
     if model_type == "sparse":
         candidate_generator = SparseRetrieval(data_dir=data_dir, dictionary_file=dictionary_file)
-        _ = candidate_generator.generate_candidates(output_dir = output_dir)
+        _ = candidate_generator.generate_candidates(output_dir = output_file)
     else:
         tokenizer = AutoTokenizer.from_pretrained("cambridgeltl/SapBERT-from-PubMedBERT-fulltext")
         model =  AutoModel.from_pretrained("cambridgeltl/SapBERT-from-PubMedBERT-fulltext").cuda()
         device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
         candidate_generator = DenseRetrieval(data_dir=data_dir, dictionary_file=dictionary_file)
-        _ = candidate_generator.generate_candidates(output_dir = output_dir)
+        _ = candidate_generator.generate_candidates(output_file = output_file)
       
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', type=str,
-                    default="./data/processed/st21pv/train",
+                    default="./data/st21pv/train_dev",
                     help='path of data directory')
     parser.add_argument('--dictionary_file', type=str,
-                    default="./data/processed/umls/dictionary.txt",
+                    default="./data/umls/dictionary.txt",
                     help='path of input file (train/test)')                
     parser.add_argument('--output_file', type=str,
-                    default="./models/candidates/s121pv/train", 
-                    help='path of output directionary')
+                    default="../../output/sparse_candidate.txt", 
+                    help='path of output directory')
+    parser.add_argument('--model_type', type=str,
+                        default="sparse",
+                        help='sparse or dense')
 
     args = parser.parse_args()
     main(args)
