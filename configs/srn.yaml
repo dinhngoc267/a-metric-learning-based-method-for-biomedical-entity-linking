@@ -1,0 +1,8 @@
+parameters:
+    init_value: 10.0
+    epsilon: 1.0
+
+optimier:
+  name: Adam
+  learning_rate: 0.01
+  

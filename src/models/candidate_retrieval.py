@@ -35,12 +35,12 @@ class SparseRetrieval:
         self.char_tfidf = TfidfVectorizer(analyzer='char',
                                     lowercase=True,
                                     ngram_range=char_ngram_range,
-                                    dtype=np.float16)
+                                    dtype=np.float32)
 
         self.word_tfidf = TfidfVectorizer(analyzer='word', 
                                      lowercase =True, 
                                      ngram_range=(1, 1),
-                                     dtype=np.float16, 
+                                     dtype=np.float32, 
                                      stop_words = stopwords.words('english'), 
                                      token_pattern='[a-zA-Z0-9_]{1,}')
         
