@@ -1,4 +1,4 @@
-# A Metric Learning-based Method for Biomedical Entity Linking
+# A Metric Learning-based Method for Biomedical EL
 
 The code for paper [A metric learning-based method for biomedical entity linking](https://www.frontiersin.org/articles/10.3389/frma.2023.1247094/full).
 
