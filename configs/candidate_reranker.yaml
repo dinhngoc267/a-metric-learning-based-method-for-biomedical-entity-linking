@@ -1,7 +1,0 @@
-optimizer:
-  name: Adam
-  learning_rate: 0.00001
-
-train:
-  epochs: 3
-  batch_size: 32

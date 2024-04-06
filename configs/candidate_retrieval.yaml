@@ -1,8 +1,0 @@
-sparse_parameters:
-  char_ngram: [2,5]
-  word_ngram: [1,1]
-  topk_char: 44
-  k_candidates: 64
-
-dense_parameters:
-  max_length: 50
