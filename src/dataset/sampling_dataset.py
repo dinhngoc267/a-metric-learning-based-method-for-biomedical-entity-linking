@@ -209,7 +209,9 @@ class SamplingDataset(Dataset):
             mention_inputs=mention_inputs,
             mention_positions=mention_positions,
             negative_candidate_inputs=negative_candidate_inputs,
-            positive_entity_input=positive_entity_input
+            positive_entity_input=positive_entity_input,
+            negative_candidates=candidates,
+            positive_entity=label,
         )
 
 

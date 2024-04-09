@@ -2,12 +2,11 @@ import torch
 import random
 import logging
 import pytorch_lightning as pl
+import numpy as np
 from transformers import BertTokenizer, BertModel
 from lightning.pytorch import Trainer, seed_everything
 from src.refactor_utils import euclidean_dist, pairwise_euclidean_dist
 from src.metric import LinkingAccuracy
-
-torch.set_float32_matmul_precision('medium')
 
 
 class MentionEncoder(pl.LightningModule):
@@ -133,6 +132,13 @@ class ReRanker(pl.LightningModule):
             batch_negative_candidate_inputs = batch['negative_candidate_inputs']
             batch_size = batch_anchor_mention_position.size(0)
 
+            batch_negative_candidates = batch['negative_candidates']
+            batch_negative_candidates = [[batch_negative_candidates[j][i] for j in range(64)] for i in range(batch_size)]
+            all_negative_candidates = [batch_negative_candidates[i][j] for i in range(len(batch_negative_candidates))
+                                       for j in range(len(batch_negative_candidates[0]))]
+            all_negative_candidates = np.array(all_negative_candidates)
+            batch_positive_entity = np.array(batch['positive_entity'])
+
             # compute anchor embedding
             batch_anchor_embedding = self.mention_encoder(batch_anchor_mention_input,
                                                           batch_anchor_mention_position)
@@ -155,6 +161,11 @@ class ReRanker(pl.LightningModule):
             # calculate distance between anchor and in batch candidates (more negative candidates will be considered)
             dist = euclidean_dist(batch_anchor_embedding,
                                   batch_candidate_embeddings)  # [batch_size, batch_size*max_candidates]
+
+            # mask out the case that negative candidates of other samples in batch is positive label of an sample
+            mask = batch_positive_entity[:, None] == all_negative_candidates
+            mask = torch.tensor(mask, device=self.device) * 1e+3
+            dist = dist + mask
 
             _, topi = dist.topk(1, largest=False, dim=-1)
             topi = topi.squeeze(-1).detach()
