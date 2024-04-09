@@ -17,8 +17,10 @@ pip install -r requirements.txt
 
 ## Experiments
 
-## Results
-
-## Citation
+```
+conda activate el_env
+export PYTHONPATH=.
+python src/train.py
+```
 
 
