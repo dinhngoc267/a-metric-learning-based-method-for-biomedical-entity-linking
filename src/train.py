@@ -4,9 +4,9 @@ import pytorch_lightning as pl
 from torch.utils.data import DataLoader, Dataset
 from transformers import BertTokenizer, BertModel
 from lightning.pytorch import Trainer, seed_everything
-from refactor_dataset.orginal_proposed_dataset import SamplingDataset
-from refactor_dataset.validation_dataset import ValidationDataset
-from refactor_models.original_proposed_reranker import ReRanker
+from dataset.sampling_dataset import SamplingDataset
+from dataset.validation_dataset import ValidationDataset
+from models.reranker import ReRanker
 from logger import HistoryLogger
 
 seed_everything(42, workers=True)
@@ -43,7 +43,6 @@ if __name__ == '__main__':
                                     tokenizer=tokenizer,
                                     device=device,
                                     logger=LOGGER)
-
 
     model = ReRanker(bert_base=bert_base,
                      tokenizer=tokenizer)
