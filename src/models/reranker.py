@@ -133,7 +133,7 @@ class ReRanker(pl.LightningModule):
             batch_size = batch_anchor_mention_position.size(0)
 
             batch_negative_candidates = batch['negative_candidates']
-            batch_negative_candidates = [[batch_negative_candidates[j][i] for j in range(64)] for i in range(batch_size)]
+            # batch_negative_candidates = [[batch_negative_candidates[j][i] for j in range(64)] for i in range(batch_size)]
             all_negative_candidates = [batch_negative_candidates[i][j] for i in range(len(batch_negative_candidates))
                                        for j in range(len(batch_negative_candidates[0]))]
             all_negative_candidates = np.array(all_negative_candidates)
@@ -149,6 +149,7 @@ class ReRanker(pl.LightningModule):
 
             # compute candidate embeddings
             batch_candidate_embeddings = self.entity_encoder(batch_negative_candidate_inputs)  # (batch_size * max_candidates, dim)
+
 
             # resize to original shape to get hard sample only from negative candidates
             # batch_candidate_embeddings = batch_candidate_embeddings.view(batch_size, -1, batch_candidate_embeddings.size(-1))

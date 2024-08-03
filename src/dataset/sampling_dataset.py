@@ -44,7 +44,7 @@ class SamplingDataset(Dataset):
 
         # load context data
         logger.info('Load Query Mentions...')
-        context_files = glob.glob(os.path.join(data_dir, "*.context"))
+        context_files = glob.glob(os.path.join(data_dir, "*.context"))[:20]
 
         for context_file in tqdm(context_files):
             with open(context_file, "r", encoding='utf-8') as f:
@@ -142,14 +142,16 @@ class SamplingDataset(Dataset):
 
         # get all indices of mentions have the same label in a document
         mention_indices = self.data[item_label]
-        if len(mention_indices) > self.max_cluster_size: # choose randomly
+        if len(mention_indices) > self.max_cluster_size:  # choose randomly
             mention_indices = random.sample(mention_indices, self.max_cluster_size)
 
         # random choose the anchor point
         anchor_index = random.choice(mention_indices)
         anchor_mention_input, anchor_mention_position = encode_mention_input(tokenizer=self.tokenizer,
-                                                                             context_token_ids=self.all_context_data[anchor_index][0],
-                                                                             mention_position=self.all_context_data[anchor_index][1],
+                                                                             context_token_ids=
+                                                                             self.all_context_data[anchor_index][0],
+                                                                             mention_position=
+                                                                             self.all_context_data[anchor_index][1],
                                                                              max_len=self.max_mention_len,
                                                                              device=self.device)
 
@@ -167,21 +169,22 @@ class SamplingDataset(Dataset):
         mention_inputs = default_collate(mention_inputs)
         mention_positions = torch.tensor(mention_positions).to(self.device)
 
+        cluster_size = mention_positions.size(0)
         # masking input model for equal cluster size
-        for key, value in mention_inputs.items():
-            mask = torch.zeros((self.max_cluster_size, self.max_mention_len), device=self.device, dtype=torch.long)
-            if mask.size(0) > value.size(0):
-                mask[:value.size(0)] = value
-            else:
-                mask = value[:mask.size(0)]
-            mention_inputs[key] = mask
-        # mask mention position
-        mask = torch.zeros((self.max_cluster_size, 2), device=self.device, dtype=torch.long)
-        if mention_positions.size(0) < mask.size(0):
-            mask[:mention_positions.size(0)] = mention_positions
-        else:
-            mask = mention_positions[:mask.size(0)]
-        mention_positions = mask
+        # for key, value in mention_inputs.items():
+        #     mask = torch.zeros((self.max_cluster_size, self.max_mention_len), device=self.device, dtype=torch.long)
+        #     if mask.size(0) > value.size(0):
+        #         mask[:value.size(0)] = value
+        #     else:
+        #         mask = value[:mask.size(0)]
+        #     mention_inputs[key] = mask
+        # # mask mention position
+        # mask = torch.zeros((self.max_cluster_size, 2), device=self.device, dtype=torch.long)
+        # if mention_positions.size(0) < mask.size(0):
+        #     mask[:mention_positions.size(0)] = mention_positions
+        # else:
+        #     mask = mention_positions[:mask.size(0)]
+        # mention_positions = mask
 
         # get all the candidates of the
 
@@ -208,6 +211,7 @@ class SamplingDataset(Dataset):
             anchor_mention_position=torch.tensor(anchor_mention_position),
             mention_inputs=mention_inputs,
             mention_positions=mention_positions,
+            cluster_size=cluster_size,
             negative_candidate_inputs=negative_candidate_inputs,
             positive_entity_input=positive_entity_input,
             negative_candidates=candidates,
@@ -215,3 +219,40 @@ class SamplingDataset(Dataset):
         )
 
 
+class MyCollate:
+    def __call__(self, batch):
+        # sort the batch by source length in decreased order
+        batch = sorted(batch, key=lambda x: x['cluster_size'], reverse=True)
+        max_cluster_size = batch[0]['cluster_size']
+
+        batch_dict = {'cluster_size': torch.tensor([x['cluster_size'] for x in batch]),
+                      'anchor_mention_input': default_collate([x['anchor_mention_input'] for x in batch]),
+                      'anchor_mention_position': torch.stack([x['anchor_mention_position'] for x in batch]),
+                      'mention_inputs': [x['mention_inputs'] for x in batch],
+                      'mention_positions': [x['mention_positions'] for x in batch],
+                      'negative_candidate_inputs': default_collate([x['negative_candidate_inputs'] for x in batch]),
+                      'positive_entity_input': default_collate([x['positive_entity_input'] for x in batch]),
+                      'negative_candidates': [x['negative_candidates'] for x in batch],
+                      'positive_entity': [x['positive_entity'] for x in batch]
+                      }
+
+        # print(batch_dict['mention_inputs'])
+
+        # masking input model for equal cluster size
+        for idx, item in enumerate(batch_dict['mention_inputs']):
+            for key, value in item.items():
+                mask = torch.zeros((max_cluster_size, value.size(-1)), device=value.device, dtype=torch.long)
+                if mask.size(0) > value.size(0):
+                    mask[:value.size(0)] = value
+                else:
+                    mask = value[:mask.size(0)]
+                item[key] = mask
+            batch_dict['mention_inputs'][idx] = item
+        batch_dict['mention_inputs'] = default_collate(batch_dict['mention_inputs'])
+        # mask mention position
+        for idx, item in enumerate(batch_dict['mention_positions']):
+            mask = torch.zeros((max_cluster_size, 2), device=item.device, dtype=torch.long)
+            mask[:item.size(0)] = item
+            batch_dict['mention_positions'][idx] = mask
+        batch_dict['mention_positions'] = torch.stack(batch_dict['mention_positions'])
+        return batch_dict

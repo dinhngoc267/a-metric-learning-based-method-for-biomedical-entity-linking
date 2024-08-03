@@ -39,7 +39,7 @@ class ValidationDataset(Dataset):
         self.entity_dict = defaultdict(str)
         # load context data
         logger.info('Load Query Mentions...')
-        context_files = glob.glob(os.path.join(data_dir, "*.context"))
+        context_files = glob.glob(os.path.join(data_dir, "*.context"))[:10]
 
         for context_file in tqdm(context_files):
             with open(context_file, "r", encoding='utf-8') as f:
