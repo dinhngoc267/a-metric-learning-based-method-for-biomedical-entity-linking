@@ -36,7 +36,7 @@ if __name__ == '__main__':
 
     train_dataloader = DataLoader(dataset=train_dataset,
                                   collate_fn=MyCollate(),
-                                  batch_size=12,
+                                  batch_size=32,
                                   shuffle=True)
     val_dataset = ValidationDataset(data_dir='data/processed/MedMention/st21pv/test',
                                     dictionary_file='data/processed/MedMention/umls/dictionary.txt',

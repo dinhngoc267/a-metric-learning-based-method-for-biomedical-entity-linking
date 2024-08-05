@@ -164,9 +164,9 @@ class ReRanker(pl.LightningModule):
                                   batch_candidate_embeddings)  # [batch_size, batch_size*max_candidates]
 
             # mask out the case that negative candidates of other samples in batch is positive label of an sample
-            mask = batch_positive_entity[:, None] == all_negative_candidates
-            mask = torch.tensor(mask, device=self.device) * 1e+3
-            dist = dist + mask
+            # mask = batch_positive_entity[:, None] == all_negative_candidates
+            # mask = torch.tensor(mask, device=self.device) * 1e+3
+            # dist = dist + mask
 
             _, topi = dist.topk(1, largest=False, dim=-1)
             topi = topi.squeeze(-1).detach()
