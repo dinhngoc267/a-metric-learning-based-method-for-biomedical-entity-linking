@@ -21,8 +21,6 @@ pip install -r requirements.txt
 
 ST21pv: https://github.com/chanzuckerberg/MedMentions
 
-You can download the UMLS2017AA here:
-https://drive.google.com/file/d/1sbTlpeeoNQQV70JWKVdkSKpf5Xi-EZdE/view?usp=drive_link
 
 
 ## Experiments
