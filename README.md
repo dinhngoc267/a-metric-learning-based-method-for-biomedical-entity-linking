@@ -58,4 +58,3 @@ ABSTRACT={<p>Biomedical entity linking task is the task of mapping mention(s) th
 
 ```
 
-[![HitCount](https://hits.dwyl.com/dinhngoc267/a-metric-learning-based-method-for-biomedical-entity-linking.svg?style=flat)](http://hits.dwyl.com/dinhngoc267/a-metric-learning-based-method-for-biomedical-entity-linking)
